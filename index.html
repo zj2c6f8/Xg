@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nima Ultra Tools</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        darkBg: '#0f172a',
+                        cardBg: '#1e293b'
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-darkBg text-slate-100 min-h-screen flex flex-col font-sans">
+
+    <!-- Header Navigation -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-wand-magic-sparkles text-indigo-500 text-2xl"></i>
+                <h1 class="text-xl font-bold bg-gradient-to-r from-indigo-400 to-pink-500 bg-clip-text text-transparent">
+                    Nima Ultra Tools
+                </h1>
+            </div>
+
+            <!-- Profile / Google Auth Container -->
+            <div id="authContainer">
+                <button id="loginBtn" onclick="handleGoogleLogin()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition">
+                    <i class="fa-brands fa-google"></i> Login with Google
+                </button>
+                <div id="userProfile" class="hidden flex items-center gap-3">
+                    <img id="userAvatar" src="" class="w-8 h-8 rounded-full border border-indigo-500">
+                    <span id="userName" class="text-sm font-medium"></span>
+                    <button onclick="handleLogout()" class="text-xs text-red-400 hover:underline">Logout</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main App Container -->
+    <main class="max-w-7xl mx-auto px-4 py-8 flex-1 w-full grid grid-cols-1 md:grid-cols-4 gap-6">
+
+        <!-- Sidebar Navigation -->
+        <aside class="md:col-span-1 space-y-2">
+            <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 px-2">Tool Categories</h3>
+            <button onclick="switchCategory('ai')" class="nav-btn w-full text-left px-3 py-2 rounded-lg bg-slate-800 text-indigo-400 font-medium flex items-center gap-2">
+                <i class="fa-solid fa-robot"></i> AI Tools
+            </button>
+            <button onclick="switchCategory('downloaders')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-800/60 text-slate-300 font-medium flex items-center gap-2">
+                <i class="fa-solid fa-download"></i> Downloaders
+            </button>
+            <button onclick="switchCategory('utilities')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-800/60 text-slate-300 font-medium flex items-center gap-2">
+                <i class="fa-solid fa-screwdriver-wrench"></i> Utilities & Web
+            </button>
+            <button onclick="switchCategory('media')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-800/60 text-slate-300 font-medium flex items-center gap-2">
+                <i class="fa-solid fa-film"></i> Search & Media
+            </button>
+        </aside>
+
+        <!-- Tool Workspace -->
+        <section class="md:col-span-3 space-y-6">
+
+            <!-- Category Tool Selection Cards -->
+            <div id="toolsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Dynamic Tools will load here -->
+            </div>
+
+            <!-- Active Tool Interface -->
+            <div id="activeToolCard" class="bg-cardBg border border-slate-800 rounded-xl p-6 hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 id="toolTitle" class="text-lg font-bold text-slate-100 flex items-center gap-2"></h2>
+                    <span id="toolBadge" class="text-xs bg-indigo-500/20 text-indigo-300 px-2.5 py-1 rounded-full border border-indigo-500/30">Active</span>
+                </div>
+                
+                <form id="toolForm" onsubmit="executeApi(event)" class="space-y-4">
+                    <div id="dynamicInputs" class="space-y-3">
+                        <!-- Inputs inserted via JS -->
+                    </div>
+                    <button type="submit" id="submitBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-lg transition flex justify-center items-center gap-2">
+                        <i class="fa-solid fa-bolt"></i> Process Request
+                    </button>
+                </form>
+
+                <!-- UI Output Rendering Box -->
+                <div id="outputContainer" class="mt-6 hidden">
+                    <h3 class="text-sm font-semibold text-slate-400 mb-2">Live Result:</h3>
+                    
+                    <!-- Loading Spinner -->
+                    <div id="loadingSpinner" class="hidden py-8 text-center text-indigo-400">
+                        <i class="fa-solid fa-circle-notch fa-spin text-3xl"></i>
+                        <p class="text-xs mt-2 text-slate-400">Processing media/data inside Nima Ultra...</p>
+                    </div>
+
+                    <!-- In-site Rendered Player & Output Container -->
+                    <div id="renderedOutput" class="bg-slate-900 border border-slate-800 rounded-lg p-4 min-h-[100px] flex flex-col items-center justify-center">
+                    </div>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800 bg-slate-900 py-4 text-center text-xs text-slate-500">
+        Nima Ultra Tools &copy; 2026. Built with In-Site Media Streaming.
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script>
+        const KEYS = {
+            DEXTER: 'dex_OVXRXAq9KV9p3j20DmaDjmGXP0WI3DHXINjO6ZTWz6IIRiv8',
+            SUPUN: 'supun-gu4cu5z5p5p72c2b8wa337jg'
+        };
+
+        let currentTool = null;
+
+        const TOOLS = [
+            // AI Tools
+            { id: 'ai2', cat: 'ai', name: 'Gemini / ChatGPT AI', icon: 'fa-brain', type: 'text',
+              inputs: [{ label: 'Prompt', key: 'prompt', type: 'text' }, { label: 'Model', key: 'model', type: 'select', options: ['gemini', 'chatgpt'] }],
+              endpoint: (p) => `https://supunofc.site/api/ai/ai2?prompt=${encodeURIComponent(p.prompt)}&model=${p.model}&apikey=${KEYS.SUPUN}`
+            },
+            { id: 'aisong', cat: 'ai', name: 'AI Song Generator', icon: 'fa-music', type: 'audio',
+              inputs: [{ label: 'Song Description/Prompt', key: 'prompt', type: 'text' }],
+              endpoint: (p) => `https://supunofc.site/api/ai/ai/ai-song?prompt=${encodeURIComponent(p.prompt)}&apikey=${KEYS.SUPUN}`
+            },
+
+            // Downloaders
+            { id: 'tiktok', cat: 'downloaders', name: 'TikTok Downloader & Player', icon: 'fa-tiktok', type: 'video',
+              inputs: [{ label: 'TikTok Video URL', key: 'url', type: 'url' }],
+              endpoint: (p) => `https://supunofc.site/api/download/tiktok/dl?url=${encodeURIComponent(p.url)}&type=auto&apikey=${KEYS.SUPUN}`
+            },
+            { id: 'ytmp4', cat: 'downloaders', name: 'YouTube Player & Downloader', icon: 'fa-youtube', type: 'video',
+              inputs: [{ label: 'YouTube Video URL', key: 'url', type: 'url' }],
+              endpoint: (p) => `https://supunofc.site/api/download/ytmp4-down?url=${encodeURIComponent(p.url)}&apikey=${KEYS.SUPUN}`
+            },
+
+            // Utilities
+            { id: 'ssweb', cat: 'utilities', name: 'Website Live Screenshot', icon: 'fa-camera', type: 'image',
+              inputs: [{ label: 'Website URL', key: 'url', type: 'url' }],
+              endpoint: (p) => `https://supunofc.site/api/convert/ssweb?url=${encodeURIComponent(p.url)}&apikey=${KEYS.SUPUN}`
+            },
+            { id: 'ipstrack', cat: 'utilities', name: 'IP Address Tracker', icon: 'fa-location-dot', type: 'json',
+              inputs: [{ label: 'Target IP Address', key: 'target', type: 'text' }],
+              endpoint: (p) => `https://dexter-apis.onrender.com/api/tools/trackip?target=${encodeURIComponent(p.target)}&apikey=${KEYS.DEXTER}`
+            },
+
+            // Media & Search
+            { id: 'github_stalk', cat: 'media', name: 'GitHub Stalker', icon: 'fa-github', type: 'json',
+              inputs: [{ label: 'GitHub Username', key: 'username', type: 'text' }],
+              endpoint: (p) => `https://supunofc.site/api/stalker/github/stalker?username=${encodeURIComponent(p.username)}&apikey=${KEYS.SUPUN}`
+            }
+        ];
+
+        window.onload = () => switchCategory('ai');
+
+        function switchCategory(category) {
+            const grid = document.getElementById('toolsGrid');
+            grid.innerHTML = '';
+            
+            const filtered = TOOLS.filter(t => t.cat === category);
+            filtered.forEach(tool => {
+                grid.innerHTML += `
+                    <div onclick="selectTool('${tool.id}')" class="bg-cardBg border border-slate-800 hover:border-indigo-500/50 p-4 rounded-xl cursor-pointer transition flex items-center gap-3">
+                        <div class="p-3 bg-indigo-500/10 text-indigo-400 rounded-lg">
+                            <i class="fa-solid ${tool.icon} text-xl"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-sm">${tool.name}</h4>
+                            <p class="text-xs text-slate-400">Click to launch</p>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function selectTool(id) {
+            currentTool = TOOLS.find(t => t.id === id);
+            document.getElementById('activeToolCard').classList.remove('hidden');
+            document.getElementById('toolTitle').innerHTML = `<i class="fa-solid ${currentTool.icon}"></i> ${currentTool.name}`;
+            
+            const inputsContainer = document.getElementById('dynamicInputs');
+            inputsContainer.innerHTML = '';
+
+            currentTool.inputs.forEach(input => {
+                if(input.type === 'select') {
+                    let optionsHtml = input.options.map(opt => `<option value="${opt}">${opt.toUpperCase()}</option>`).join('');
+                    inputsContainer.innerHTML += `
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">${input.label}</label>
+                            <select name="${input.key}" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200">
+                                ${optionsHtml}
+                            </select>
+                        </div>
+                    `;
+                } else {
+                    inputsContainer.innerHTML += `
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">${input.label}</label>
+                            <input type="${input.type}" name="${input.key}" required placeholder="Enter ${input.label}..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+                        </div>
+                    `;
+                }
+            });
+
+            document.getElementById('outputContainer').classList.add('hidden');
+        }
+
+        async function executeApi(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const params = {};
+            formData.forEach((value, key) => params[key] = value);
+
+            const url = currentTool.endpoint(params);
+            
+            const outputBox = document.getElementById('renderedOutput');
+            const outputContainer = document.getElementById('outputContainer');
+            const spinner = document.getElementById('loadingSpinner');
+
+            outputContainer.classList.remove('hidden');
+            spinner.classList.remove('hidden');
+            outputBox.innerHTML = '';
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                spinner.classList.add('hidden');
+                renderInSiteMedia(data);
+            } catch (err) {
+                spinner.classList.add('hidden');
+                outputBox.innerHTML = `<div class="text-red-400 text-sm"><i class="fa-solid fa-circle-exclamation"></i> Error loading response or CORS restricted.</div>`;
+            }
+        }
+
+        // In-Site Player & Component Renderer
+        function renderInSiteMedia(data) {
+            const box = document.getElementById('renderedOutput');
+            
+            // Extract media URLs from common API payload formats
+            let mediaUrl = data.result?.url || data.result?.nowatermark || data.result?.download || data.download || data.result || data.url;
+
+            // 1. VIDEO PLAYER (TikTok, YouTube, MP4)
+            if (currentTool.type === 'video' && mediaUrl) {
+                box.innerHTML = `
+                    <div class="w-full max-w-md flex flex-col items-center gap-4">
+                        <video controls autoplay class="w-full rounded-lg border border-slate-700 shadow-lg">
+                            <source src="${mediaUrl}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                        <a href="${mediaUrl}" download target="_blank" class="w-full text-center bg-green-600 hover:bg-green-700 text-white font-medium py-2 rounded-lg transition">
+                            <i class="fa-solid fa-download"></i> Download Video
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+
+            // 2. AUDIO PLAYER (AI Songs / Music)
+            if (currentTool.type === 'audio' && mediaUrl) {
+                box.innerHTML = `
+                    <div class="w-full max-w-md bg-slate-800 p-4 rounded-xl flex flex-col items-center gap-3">
+                        <i class="fa-solid fa-music text-indigo-400 text-3xl mb-1"></i>
+                        <audio controls class="w-full">
+                            <source src="${mediaUrl}" type="audio/mpeg">
+                        </audio>
+                        <a href="${mediaUrl}" download target="_blank" class="w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium py-2 rounded-lg transition">
+                            <i class="fa-solid fa-download"></i> Save Song
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+
+            // 3. IMAGE PREVIEW (Screenshots)
+            if (currentTool.type === 'image' && mediaUrl) {
+                box.innerHTML = `
+                    <div class="w-full flex flex-col items-center gap-3">
+                        <img src="${mediaUrl}" class="max-w-full h-auto rounded-lg border border-slate-700 shadow-md">
+                        <a href="${mediaUrl}" download target="_blank" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-4 py-2 rounded-lg transition">
+                            <i class="fa-solid fa-download"></i> Save Image
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+
+            // 4. TEXT / AI CHAT
+            if (currentTool.type === 'text') {
+                const textContent = data.result || data.response || JSON.stringify(data);
+                box.innerHTML = `
+                    <div class="w-full text-left bg-slate-800/80 p-4 rounded-lg border border-slate-700 text-slate-200 text-sm leading-relaxed whitespace-pre-wrap">
+                        ${textContent}
+                    </div>
+                `;
+                return;
+            }
+
+            // Fallback for data
+            box.innerHTML = `<pre class="text-xs text-indigo-300 w-full overflow-x-auto bg-slate-950 p-3 rounded">${JSON.stringify(data, null, 2)}</pre>`;
+        }
+
+        function handleGoogleLogin() {
+            document.getElementById('loginBtn').classList.add('hidden');
+            document.getElementById('userProfile').classList.remove('hidden');
+            document.getElementById('userAvatar').src = "https://ui-avatars.com/api/?name=Nima+User&background=6366f1&color=fff";
+            document.getElementById('userName').innerText = "Logged User";
+        }
+
+        function handleLogout() {
+            document.getElementById('loginBtn').classList.remove('hidden');
+            document.getElementById('userProfile').classList.add('hidden');
+        }
+    </script>
+</body>
+      </html>
